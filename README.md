@@ -1,31 +1,35 @@
 # Local Lakehouse
 
-This repository is a minimal baseline for building and operating a local lakehouse.
+Minimal local lakehouse baseline built around Iceberg.
 
-The goal is to keep only the parts that are broadly useful across projects:
-- local infrastructure for object storage and query engines
-- engine configuration checked into source control
-- a stable data layout for `bronze`, `silver`, and `gold`
-- a small operational script for validating the end-to-end flow on sample data
+## Purpose
 
-This repository does not include framework scaffolding, sample application code, or placeholder ETL modules.
+This repository exists to provide a clean starting point for ETL and lakehouse work on a local machine.
 
-## Architecture
+It keeps only the core pieces that are useful from the beginning:
+- local object storage
+- Iceberg catalog
+- query and processing engines
+- a simple `bronze / silver / gold` data layout
+- one small script for validating the flow on sample data
 
-The local stack is composed of:
-- `MinIO` as S3-compatible object storage
-- `Iceberg REST catalog` as the table metadata service
-- `Spark` for ETL, table creation, and maintenance jobs
-- `Trino` for interactive SQL and analytics
+## Why This Repository Exists
 
-The intended data lifecycle is:
-1. raw input lands in `bronze`
-2. cleaned and standardized data moves to `silver`
-3. business-ready outputs are published to `gold`
+Most early data repos become noisy too quickly: placeholder code, half-used frameworks, and sample modules that do not survive the first real pipeline.
 
-That flow should remain stable even if the implementation changes later.
+This repository takes the opposite approach:
+- keep the infrastructure explicit
+- keep the data layout stable
+- add pipeline code only when there is a real source and a real transformation to support
 
-## Repository Layout
+## Stack
+
+- MinIO for S3-compatible local storage
+- Iceberg REST catalog for table metadata
+- Spark for ETL and table operations
+- Trino for SQL access and ad hoc querying
+
+## Repository Structure
 
 ```text
 .
@@ -50,93 +54,59 @@ That flow should remain stable even if the implementation changes later.
    `- extract_moltbook_sample.ps1
 ```
 
-## Directory Responsibilities
+## Data Layout
 
-`infra/`
-Stores engine configuration that should be versioned and reviewed like code.
+- `lakehouse/bronze/`: raw or near-raw input
+- `lakehouse/silver/`: cleaned and standardized data
+- `lakehouse/gold/`: analysis-ready or business-facing outputs
 
-`lakehouse/bronze/`
-Raw or near-raw data. Prefer append-only writes and minimal business logic here.
+This layout is the main contract of the repository. Implementation details can change later, but this flow should remain stable.
 
-`lakehouse/silver/`
-Cleaned, typed, standardized data. Null handling, column naming, deduplication, and schema normalization belong here.
+## Usage
 
-`lakehouse/gold/`
-Business-facing datasets for analysis, reporting, or downstream consumption.
+### 1. Configure environment
 
-`sample/`
-Small input data used to validate the repository setup and operating flow.
+Copy `.env.example` to `.env`.
 
-`scripts/`
-Small operational scripts. These should stay practical and task-specific.
-
-## Running The Stack
-
-1. Copy `.env.example` to `.env`.
-2. Start the local services:
+### 2. Start local services
 
 ```powershell
 docker compose up -d
 ```
 
-3. Verify the main endpoints:
-- MinIO console: `http://localhost:9001`
-- Trino: `http://localhost:8080`
-- Iceberg REST catalog: `http://localhost:8181`
-
-You can also use:
+Or:
 
 ```powershell
 make up
-make down
 ```
 
-## Sample Data Flow
+### 3. Verify services
 
-The repository includes one sample workbook:
-- [sample/moltbook_top1000_posts.xlsx](C:\Users\Admin\spark\sample\moltbook_top1000_posts.xlsx)
+- MinIO Console: `http://localhost:9001`
+- Trino: `http://localhost:8080`
+- Iceberg REST catalog: `http://localhost:8181`
 
-The script below reads that workbook and writes derived outputs into the local lakehouse directories:
-- `lakehouse/bronze/`
-- `lakehouse/silver/`
-- `lakehouse/gold/`
+### 4. Run the sample extraction
 
-Run it with:
+The sample workbook at [sample/moltbook_top1000_posts.xlsx](C:\Users\Admin\spark\sample\moltbook_top1000_posts.xlsx) can be processed with:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/extract_moltbook_sample.ps1
 ```
 
-or:
+Or:
 
 ```powershell
 make extract
 ```
 
-This script exists to validate the repository shape and the basic ETL flow. It is not meant to define the final production implementation.
+The script writes outputs into:
+- `lakehouse/bronze/`
+- `lakehouse/silver/`
+- `lakehouse/gold/`
 
-## Design Principles
+## Notes
 
-- Keep infrastructure explicit and checked into the repository.
-- Keep data layout stable even when pipeline code changes.
-- Add new modules only when there is a real operational need.
-- Avoid scaffolding that is not tied to an actual source, transform, or delivery requirement.
-
-## Suggested Next Additions
-
-Add new top-level areas only when they become necessary:
-- `src/etl/` when you have repeated ingestion or transformation logic
-- `sql/` when SQL transformations need to be managed separately
-- `dbt/` when dbt is a confirmed part of the operating model
-- `tests/` when pipeline logic is stable enough to justify regression protection
-
-## Intentionally Omitted
-
-The repository intentionally does not include:
-- sample Python apps
-- placeholder dbt projects
-- toy transformation modules
-- generated runtime artifacts
-- test scaffolding without real pipeline coverage
-
-The expected outcome is simple: someone opening this repository should immediately understand where infrastructure lives, where data lands, how to run the stack, and where to extend it next.
+- `infra/` stores engine configuration and should remain version-controlled.
+- `scripts/` is for small operational scripts, not framework scaffolding.
+- Add application code only when the actual ETL workflow is clear.
