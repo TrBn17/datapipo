@@ -22,6 +22,8 @@ This repository takes the opposite approach:
 - keep the data layout stable
 - add pipeline code only when there is a real source and a real transformation to support
 
+The repository now also includes a minimal `src/` package so ETL logic can move out of one-off scripts and into a maintainable module layout.
+
 ## Stack
 
 - MinIO for S3-compatible local storage
@@ -37,6 +39,20 @@ This repository takes the opposite approach:
 |- docker-compose.yml
 |- Makefile
 |- README.md
+|- pyproject.toml
+|- src/
+|  `- lakehouse/
+|     |- cli.py
+|     |- config.py
+|     |- layout.py
+|     |- models.py
+|     |- io/
+|     |  |- workbook.py
+|     |  `- writers.py
+|     |- pipelines/
+|     |  `- moltbook.py
+|     `- transforms/
+|        `- moltbook.py
 |- infra/
 |  |- spark/
 |  |  `- conf/
@@ -100,6 +116,13 @@ Or:
 make extract
 ```
 
+There is also a Python package entrypoint for the same flow:
+
+```powershell
+py -3 -m pip install -r requirements.txt
+py -3 -m lakehouse.cli extract-moltbook
+```
+
 The script writes outputs into:
 - `lakehouse/bronze/`
 - `lakehouse/silver/`
@@ -109,4 +132,7 @@ The script writes outputs into:
 
 - `infra/` stores engine configuration and should remain version-controlled.
 - `scripts/` is for small operational scripts, not framework scaffolding.
-- Add application code only when the actual ETL workflow is clear.
+- `src/lakehouse/` is where reusable ETL code should live as the repository grows.
+- Keep parsing and file-writing helpers under `src/lakehouse/io/`.
+- Keep dataset normalization and aggregation rules under `src/lakehouse/transforms/`.
+- Add new dataset-specific logic under `src/lakehouse/pipelines/` and keep orchestration entrypoints thin.
